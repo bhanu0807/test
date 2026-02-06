@@ -1,0 +1,296 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Job 1: Code Quality & Security Checks
+  code-quality:
+    name: Code Quality & Security Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones disabled for SonarCloud
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # Checkstyle - Code Style Check
+      - name: Run Checkstyle
+        run: mvn checkstyle:check
+        continue-on-error: true
+
+      # PMD - Static Code Analysis
+      - name: Run PMD
+        run: mvn pmd:check
+        continue-on-error: true
+
+      # SpotBugs - Bug Detection
+      - name: Run SpotBugs
+        run: mvn spotbugs:check
+        continue-on-error: true
+
+      # OWASP Dependency Check - Security Vulnerabilities
+      - name: OWASP Dependency Check
+        run: mvn org.owasp:dependency-check-maven:check
+        continue-on-error: true
+
+      # SonarCloud - Comprehensive Code Quality
+      - name: SonarCloud Scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn -B verify sonar:sonar \
+            -Dsonar.projectKey=your-project-key \
+            -Dsonar.organization=your-org \
+            -Dsonar.host.url=https://sonarcloud.io
+        continue-on-error: true
+
+  # Job 2: Build & Test
+  build-and-test:
+    name: Build, Test & Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # Build the application
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      # Run tests
+      - name: Run Tests
+        run: mvn test
+
+      # Generate code coverage report
+      - name: Generate Coverage Report (JaCoCo)
+        run: mvn jacoco:report
+
+      # Upload coverage to Codecov
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./target/site/jacoco/jacoco.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      # Archive test results
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Maven Tests
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: true
+
+      # Upload build artifacts
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/app.jar
+          retention-days: 5
+
+  # Job 3: Docker Build & Scan
+  docker-security:
+    name: Docker Build & Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: target/
+
+      # Build Docker image
+      - name: Build Docker Image
+        run: docker build -t spring-boot-microservice:latest .
+
+      # Trivy - Container Vulnerability Scanner
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'spring-boot-microservice:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      # Upload Trivy results to GitHub Security tab
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      # Snyk - Vulnerability Scanning (optional)
+      - name: Run Snyk to check Docker image
+        uses: snyk/actions/docker@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: spring-boot-microservice:latest
+          args: --severity-threshold=high
+
+  # Job 4: License Compliance Check
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # Check license compliance
+      - name: License Check
+        run: mvn license:check
+        continue-on-error: true
+
+  # Job 5: Code Scanning (CodeQL)
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Initialize CodeQL
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+
+      # Build for CodeQL
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build
+        run: mvn clean package -DskipTests
+
+      # Perform CodeQL Analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  # Job 6: Integration Tests (Optional)
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # Run integration tests
+      - name: Run Integration Tests
+        run: mvn verify -Pintegration-tests
+        continue-on-error: true
+
+  # Job 7: Performance Tests (Optional)
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: target/
+
+      # Start application
+      - name: Start Application
+        run: |
+          java -jar target/app.jar &
+          sleep 30
+
+      # Run performance tests with JMeter or similar
+      - name: Run Performance Tests
+        run: echo "Add JMeter or Gatling tests here"
+        continue-on-error: true
+
+  # Job 8: Dependency Update Check
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Dependency Review - Check for vulnerable dependencies
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+
+  # Job 9: Build Status Summary
+  build-summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, build-and-test, docker-security, license-check, codeql-analysis]
+    if: always()
+
+    steps:
+      - name: Check build status
+        run: |
+          echo "Build completed!"
+          echo "Code Quality: ${{ needs.code-quality.result }}"
+          echo "Build & Test: ${{ needs.build-and-test.result }}"
+          echo "Docker Security: ${{ needs.docker-security.result }}"
+          echo "License Check: ${{ needs.license-check.result }}"
+          echo "CodeQL Analysis: ${{ needs.codeql-analysis.result }}"
