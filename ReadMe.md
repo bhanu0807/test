@@ -1,5 +1,8 @@
 I don't have access to previous conversation histories. Each conversation starts fresh — I don't retain or have access to past chat sessions.
 
+
+LOCAL PROJECT → GIT PUSH → GITHUB → JENKINS → DOCKER → KUBERNETES
+
 What I do have is:
 
 A persistent memory file (MEMORY.md) where I can save notes across conversations, but it's currently empty — meaning nothing was saved from prior sessions.

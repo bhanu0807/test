@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
         - name: spring-boot-microservice
-          image: your-registry.example.com/spring-boot-microservice:latest
+          image: spring-boot-microservice:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
           livenessProbe:
