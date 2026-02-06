@@ -16,7 +16,7 @@ public class HomeController {
         this.messageService = messageService;
     }
 
-    /** Renders the home page. */
+    /** Renders the home page. ...*/
     @GetMapping("/")
     public String home() {
         return "home";
