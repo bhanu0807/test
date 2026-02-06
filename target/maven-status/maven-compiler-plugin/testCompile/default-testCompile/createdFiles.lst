@@ -1,0 +1,3 @@
+com\example\microservice\controller\HomeControllerTest.class
+com\example\microservice\MicroserviceApplicationTests.class
+com\example\microservice\service\MessageServiceTest.class
