@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-boot-microservice
+  labels:
+    app: spring-boot-microservice
+spec:
+  type: ClusterIP
+  selector:
+    app: spring-boot-microservice
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

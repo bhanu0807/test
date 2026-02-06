@@ -1,0 +1,3 @@
+com\example\microservice\service\MessageService.class
+com\example\microservice\MicroserviceApplication.class
+com\example\microservice\controller\HomeController.class

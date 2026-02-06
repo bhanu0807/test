@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-boot-microservice
+  labels:
+    app: spring-boot-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-boot-microservice
+  template:
+    metadata:
+      labels:
+        app: spring-boot-microservice
+    spec:
+      containers:
+        - name: spring-boot-microservice
+          image: your-registry.example.com/spring-boot-microservice:latest
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

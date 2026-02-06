@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Boot Microservice</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="container">
+        <h1>Spring Boot Microservice</h1>
+        <p class="subtitle">Enter a message and click Submit</p>
+
+        <form action="/submit" method="post">
+            <div class="form-group">
+                <label for="userInput">Your Message:</label>
+                <input type="text" id="userInput" name="userInput"
+                       placeholder="Type something here..." required>
+            </div>
+            <button type="submit">Submit</button>
+        </form>
+
+        <!-- Display response after form submission -->
+        <div th:if="${response}" class="response-box">
+            <p th:text="${response}"></p>
+        </div>
+    </div>
+</body>
+</html>
