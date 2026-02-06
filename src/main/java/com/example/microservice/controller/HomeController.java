@@ -16,14 +16,10 @@ public class HomeController {
         this.messageService = messageService;
     }
 
-    /** Renders the home page. abcdefghi ...*/
+    /** Renders the home page. ...*/
     @GetMapping("/")
     public String home() {
         return "home";
-    }
-        @GetMapping("/select")
-    public String homeone() {
-        return "homeone";
     }
 
     /** Handles form submission and displays the response. */
