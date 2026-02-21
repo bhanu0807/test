@@ -21,6 +21,10 @@ public class HomeController {
     public String home() {
         return "home";
     }
+        @GetMapping("/select")
+    public String homeone() {
+        return "homeone";
+    }
 
     /** Handles form submission and displays the response. */
     @PostMapping("/submit")
